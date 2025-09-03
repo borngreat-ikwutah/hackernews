@@ -1,14 +1,13 @@
+import { fixUpPluginRules } from "@eslint/compat";
 import css from "@eslint/css";
 import js from "@eslint/js";
 import json from "@eslint/json";
 import markdown from "@eslint/markdown";
+import eslintPrettierConfig from "eslint-config-prettier";
+import drizzlePlugin from "eslint-plugin-drizzle";
 import { defineConfig } from "eslint/config";
 import globals from "globals";
 import tseslint from "typescript-eslint";
-import drizzlePlugin from "eslint-plugin-drizzle";
-import eslintPrettierConfig from "eslint-config-prettier"
-import { fixUpPluginRules } from "@eslint/compat";
-
 
 export default defineConfig([
   {
@@ -46,6 +45,6 @@ export default defineConfig([
   {
     plugins: {
       drizzle: fixUpPluginRules(drizzlePlugin),
-    }
-  }
+    },
+  },
 ]);
