@@ -27,11 +27,13 @@ export const authRouter = new Hono<{
     console.log("Sign up result:", result);
 
     if (result.user) {
-      return c.json<SuccessResponse<{
-        id: string;
-        email: string;
-        name: string;
-      }>>(
+      return c.json<
+        SuccessResponse<{
+          id: string;
+          email: string;
+          name: string;
+        }>
+      >(
         {
           success: true,
           message: "User Created",

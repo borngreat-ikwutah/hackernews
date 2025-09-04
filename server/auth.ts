@@ -1,7 +1,8 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+
+import { account, session, user, verification } from "../auth-schema";
 import { db } from "./adapter";
-import { user, session, account, verification } from "../auth-schema";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -9,7 +10,7 @@ export const auth = betterAuth({
     schema: {
       user,
       session,
-      account, 
+      account,
       verification,
     },
   }),
@@ -28,9 +29,9 @@ export const auth = betterAuth({
   advanced: {
     database: {
       generateId: () => crypto.randomUUID(),
-    }
+    },
   },
 });
 
-export type Session =  typeof auth.$Infer.Session.session
-export type User = typeof auth.$Infer.Session.user
+export type Session = typeof auth.$Infer.Session.session;
+export type User = typeof auth.$Infer.Session.user;
