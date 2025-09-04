@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type SuccessResponse<T = void> = {
   success: true;
   message: string;
@@ -8,3 +10,9 @@ export type ErrorResponse = {
   message: string;
   isFormError?: boolean;
 };
+
+export const loginSchema = z.object({
+  name: z.string().min(3).max(31),
+  password: z.string().min(3).max(255),
+  email: z.string().email(),
+});

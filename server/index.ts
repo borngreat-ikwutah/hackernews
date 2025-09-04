@@ -1,12 +1,36 @@
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 
+import { serve } from "@hono/node-server";
+
 import type { ErrorResponse } from "@/shared/types";
 
-const app = new Hono();
+import { auth } from "./auth";
+import type { Context } from "./context";
+import { authRouter } from "./routes/auth";
 
-app.get("/", (c) => {
-  return c.text("Hello Hono!");
+const app = new Hono<{
+  Variables: Context;
+}>();
+
+// Keep only your custom auth router
+const routes = app.basePath("/api").route("/auth", authRouter);
+
+app.use("*", async (c, next) => {
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  if (!session) {
+    c.set("user", null);
+    c.set("session", null);
+    return next();
+  }
+
+  c.set("user", session.user);
+  c.set("session", session.session);
+  return next();
+});
+
+app.on(["POST", "GET"], "/api/auth/*", (c) => {
+  return auth.handler(c.req.raw);
 });
 
 app.onError((error, c) => {
@@ -39,4 +63,12 @@ app.onError((error, c) => {
   );
 });
 
-export default app;
+const port = 3000;
+console.log(`Server is running on port ${port}`);
+
+serve({
+  port: port,
+  fetch: app.fetch,
+});
+
+export type ApiRoutes = typeof routes;
