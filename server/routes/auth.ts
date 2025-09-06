@@ -3,6 +3,7 @@ import { HTTPException } from "hono/http-exception";
 
 import { auth } from "@/auth";
 import type { Context } from "@/context";
+import { loggedIn } from "@/middleware/logged-in";
 import { zValidator } from "@hono/zod-validator";
 
 import {
@@ -27,6 +28,7 @@ export const authRouter = new Hono<{
           name: name,
           username: name,
         },
+       
       });
 
       console.log("Sign up result:", result);
@@ -72,6 +74,7 @@ export const authRouter = new Hono<{
             email: email,
             password: password,
           },
+          headers: c.req.header(), // Add this line
         });
 
         if (result.user) {
@@ -106,7 +109,7 @@ export const authRouter = new Hono<{
       }
     },
   )
-  .post("/signout", async (c) => {
+  .post("/signout", loggedIn, async (c) => {
     const session = c.get("session");
 
     if (!session) {
@@ -129,7 +132,7 @@ export const authRouter = new Hono<{
       throw new HTTPException(500, { message: "Failed to sign out" });
     }
   })
-  .get("/user", async (c) => {
+  .get("/user", loggedIn, async (c) => {
     const user = c.get("user");
 
     if (!user) {

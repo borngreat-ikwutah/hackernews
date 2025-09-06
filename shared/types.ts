@@ -1,3 +1,4 @@
+import { insertPostsSchema } from "@/db/schemas/posts";
 import { z } from "zod";
 
 export type SuccessResponse<T = void> = {
@@ -17,7 +18,13 @@ export const loginSchema = z.object({
   email: z.string().email(),
 });
 
-export const signInSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(3).max(255),
-});
+export const createPostSchema = insertPostsSchema
+  .pick({
+    title: true,
+    url: true,
+    content: true,
+  })
+  .refine((data) => data.url || data.content, {
+    message: "Either URL or content must be provided",
+    path: ["url", "content"],
+  },);

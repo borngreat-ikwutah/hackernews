@@ -8,30 +8,47 @@ import type { ErrorResponse } from "@/shared/types";
 import { auth } from "./auth";
 import type { Context } from "./context";
 import { authRouter } from "./routes/auth";
+import { postRouter } from "./routes/posts";
+import { cors } from "hono/cors";
 
 const app = new Hono<{
   Variables: Context;
 }>();
 
-// Keep only your custom auth router
-const routes = app.basePath("/api").route("/auth", authRouter);
 
-app.use("*", async (c, next) => {
+app.use("*", cors(), async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
+
+  console.log("Session check:", session?.session); // Add this debug log
+  console.log("Request headers:", Object.fromEntries(c.req.raw.headers)); // And this
+
+  console.log("Cookies:", c.req.header("Cookie")); // Log the cookies
+
   if (!session) {
     c.set("user", null);
     c.set("session", null);
     return next();
   }
 
+  // If session exists, we might need to refresh it
+  // better-auth handles cookie refreshing internally
   c.set("user", session.user);
   c.set("session", session.session);
   return next();
 });
 
-app.on(["POST", "GET"], "/api/auth/*", (c) => {
-  return auth.handler(c.req.raw);
-});
+
+// Keep only your custom auth router
+const routes = app
+  .basePath("/api")
+  .route("/auth", authRouter)
+  .route("/posts", postRouter);
+
+
+
+// app.on(["POST", "GET"], "/api/auth/*", (c) => {
+//   return auth.handler(c.req.raw);
+// });
 
 app.onError((error, c) => {
   if (error instanceof HTTPException) {
