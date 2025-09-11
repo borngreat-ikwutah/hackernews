@@ -19,10 +19,12 @@ const app = new Hono<{
 app.use("*", cors(), async (c, next) => {
   const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
+  console.log("Auth middleware triggered");
+
   console.log("Session check:", session?.session); // Add this debug log
   console.log("Request headers:", Object.fromEntries(c.req.raw.headers)); // And this
 
-  console.log("Cookies:", c.req.header("Cookie")); // Log the cookies
+  console.log("Cookies:", c.req.raw.headers.get("Cookie")); // Log the cookies
 
   if (!session) {
     c.set("user", null);
