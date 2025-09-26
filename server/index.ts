@@ -1,56 +1,87 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 
 import { serve } from "@hono/node-server";
+import { apiReference } from "@scalar/hono-api-reference";
 
 import type { ErrorResponse } from "@/shared/types";
 
 import { auth } from "./auth";
 import type { Context } from "./context";
-import { authRouter } from "./routes/auth";
 import { postRouter } from "./routes/posts";
-import { cors } from "hono/cors";
+import { getCompleteOpenAPISchema } from "./utils/openapi-generator";
 
 const app = new Hono<{
   Variables: Context;
 }>();
 
+// Configure CORS properly for authentication
+app.use(
+  "*",
+  cors({
+    origin: (origin) => origin || "*", // Allow all origins in development
+    credentials: true,
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "Cookie"],
+  }),
+  async (c, next) => {
+    // Check for session on every request
+    const session = await auth.api.getSession({ headers: c.req.raw.headers });
 
-app.use("*", cors(), async (c, next) => {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    console.log("Auth middleware triggered");
+    console.log("Session check:", session?.session);
+    console.log("Cookies:", c.req.raw.headers.get("Cookie"));
 
-  console.log("Auth middleware triggered");
+    if (!session) {
+      c.set("user", null);
+      c.set("session", null);
+    } else {
+      c.set("user", session.user);
+      c.set("session", session.session);
+    }
 
-  console.log("Session check:", session?.session); // Add this debug log
-  console.log("Request headers:", Object.fromEntries(c.req.raw.headers)); // And this
-
-  console.log("Cookies:", c.req.raw.headers.get("Cookie")); // Log the cookies
-
-  if (!session) {
-    c.set("user", null);
-    c.set("session", null);
     return next();
-  }
+  },
+);
 
-  // If session exists, we might need to refresh it
-  // better-auth handles cookie refreshing internally
-  c.set("user", session.user);
-  c.set("session", session.session);
-  return next();
+// OpenAPI Schema endpoint - serves the complete merged schema
+app.get("/api/open-api", async (c) => {
+  try {
+    const schema = await getCompleteOpenAPISchema();
+    return c.json(schema);
+  } catch (error) {
+    console.error("Error generating OpenAPI schema:", error);
+    return c.json({ error: "Failed to generate OpenAPI schema" }, 500);
+  }
 });
 
+// Unified API Documentation with Scalar
+app.get("/docs", async (c) => {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Hacker News Clone API Documentation</title>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body>
+        <script id="api-reference" data-url="/api/open-api"></script>
+        <script src="https://cdn.jsdelivr.net/npm/@scalar/api-reference"></script>
+      </body>
+    </html>
+  `;
+  return c.html(html);
+});
 
-// Keep only your custom auth router
-const routes = app
-  .basePath("/api")
-  .route("/auth", authRouter)
-  .route("/posts", postRouter);
+// Better-auth handles all authentication routes including /api/auth/reference
+app.all("/api/auth/*", async (c) => {
+  return auth.handler(c.req.raw);
+});
 
-
-
-// app.on(["POST", "GET"], "/api/auth/*", (c) => {
-//   return auth.handler(c.req.raw);
-// });
+// Only include non-auth routes
+const routes = app.basePath("/api").route("/posts", postRouter);
 
 app.onError((error, c) => {
   if (error instanceof HTTPException) {
@@ -84,6 +115,13 @@ app.onError((error, c) => {
 
 const port = 3000;
 console.log(`Server is running on port ${port}`);
+console.log(`📚 Unified API Documentation: http://localhost:${port}/docs`);
+console.log(
+  `🔐 Better-Auth OpenAPI Reference: http://localhost:${port}/api/auth/reference`,
+);
+console.log(
+  `📋 Complete OpenAPI Schema: http://localhost:${port}/api/open-api`,
+);
 
 serve({
   port: port,

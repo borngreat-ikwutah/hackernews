@@ -10,35 +10,43 @@ import { createPostSchema, type SuccessResponse } from "@/shared/types";
 
 export const postRouter = new Hono<{
   Variables: Context;
-}>().post("/create-post", loggedIn, zValidator("json", createPostSchema), async (c) => {
-  const { title, url, content } = c.req.valid("json");
-  const user = c.get("user");
+}>().post(
+  "/create-post",
+  loggedIn,
+  zValidator("json", createPostSchema),
+  async (c) => {
+    const { title, url, content } = c.req.valid("json");
+    const user = c.get("user");
 
-  if (!user) {
-    return c.json({ error: "User not found" }, 401);
-  }
+    if (!user) {
+      return c.json({ error: "User not found" }, 401);
+    }
 
-  const [post] = await db
-    .insert(postsTable)
-    .values({
-      title: title,
-      content: content,
-      url: url,
-      userId: user.id,
-    })
-    .returning({
-      id: postsTable.id,
-    });
+    const [post] = await db
+      .insert(postsTable)
+      .values({
+        title: title,
+        content: content,
+        url: url,
+        userId: user.id,
+      })
+      .returning({
+        id: postsTable.id,
+      });
 
-  return c.json<
-    SuccessResponse<{
-      postId: number | string | undefined;
-    }>
-  >({
-    success: true,
-    message: "Post Created",
-    data: {
-      postId: post?.id,
-    },
-  }, 201);
-});
+    return c.json<
+      SuccessResponse<{
+        postId: number | string | undefined;
+      }>
+    >(
+      {
+        success: true,
+        message: "Post Created",
+        data: {
+          postId: post?.id,
+        },
+      },
+      201,
+    );
+  },
+);

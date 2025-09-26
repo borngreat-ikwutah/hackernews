@@ -27,4 +27,4 @@ export const createPostSchema = insertPostsSchema
   .refine((data) => data.url || data.content, {
     message: "Either URL or content must be provided",
     path: ["url", "content"],
-  },);
+  });

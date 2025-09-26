@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { openAPI } from "better-auth/plugins";
 
 import { account, session, user, verification } from "../auth-schema";
 import { db } from "./adapter";
@@ -31,6 +32,12 @@ export const auth = betterAuth({
       generateId: () => crypto.randomUUID(),
     },
   },
+  plugins: [
+    openAPI({
+      path: "/api/auth/reference",
+      disableDefaultReference: false,
+    }),
+  ],
 });
 
 export type Session = typeof auth.$Infer.Session.session;

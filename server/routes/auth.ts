@@ -28,7 +28,6 @@ export const authRouter = new Hono<{
           name: name,
           username: name,
         },
-       
       });
 
       console.log("Sign up result:", result);
@@ -63,7 +62,7 @@ export const authRouter = new Hono<{
     }
   })
   .post(
-    "/signin",
+    "/sign-in",
     zValidator("json", loginSchema.pick({ email: true, password: true })),
     async (c) => {
       const { password, email } = c.req.valid("json");
